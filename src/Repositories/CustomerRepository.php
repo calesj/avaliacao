@@ -30,51 +30,6 @@ readonly class CustomerRepository
             throw new RuntimeException('Fonte de dados não retornou uma lista de registros.');
         }
 
-        $customers = array_values(array_filter(array_map($this->sanitize(...), $rows)));
-        $discarded = count($rows) - count($customers);
-
-        if ($discarded > 0) {
-            error_log("CustomerRepository: {$discarded} registro(s) descartado(s) por inconsistência.");
-        }
-
-        return $customers;
-    }
-
-    /**
-     * Devolve o registro limpo, ou null se ele não puder ser confiado.
-     * Um cadastro inconsistente é descartado sem derrubar o relatório inteiro.
-     */
-    private function sanitize(mixed $row): ?array
-    {
-        if (! is_array($row)) {
-            return null;
-        }
-
-        foreach (['id', 'nome', 'email', 'cidade', 'telefone'] as $field) {
-            if (trim((string) ($row[$field] ?? '')) === '') {
-                return null;
-            }
-        }
-
-        $email = strtolower(trim((string) $row['email']));
-
-        // A fonte é editada à mão, então o telefone pode vir com máscara.
-        $telefone = preg_replace('/\D/', '', (string) $row['telefone']);
-
-        if (! is_numeric($row['id']) || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            return null;
-        }
-
-        if (! in_array(strlen($telefone), [10, 11], true)) {
-            return null;
-        }
-
-        return [
-            'id' => (int) $row['id'],
-            'nome' => trim((string) $row['nome']),
-            'email' => $email,
-            'cidade' => trim((string) $row['cidade']),
-            'telefone' => $telefone,
-        ];
+        return $rows;
     }
 }
