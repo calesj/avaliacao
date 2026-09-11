@@ -1,0 +1,17 @@
+{
+    "name": "cales/relatorio-clientes",
+    "description": "Relatório de clientes em PHP, sem framework.",
+    "type": "project",
+    "require": {
+        "php": "^8.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "Core\\": "core/",
+            "App\\": "src/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true
+    }
+}

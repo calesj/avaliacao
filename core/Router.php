@@ -1,0 +1,76 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Core;
+
+class Router
+{
+    /** Caminhos sob este prefixo respondem erro em JSON, por serem consumidos via fetch. */
+    private const JSON_PREFIX = '/api';
+
+    private array $routes = [];
+
+    public function __construct(private readonly Container $container)
+    {
+    }
+
+    public function get(string $path, callable|array $handler): void
+    {
+        $this->routes['GET'][$path] = $handler;
+    }
+
+    public function dispatch(string $method, string $path): Response
+    {
+        if (isset($this->routes[$method][$path])) {
+            return $this->run($this->routes[$method][$path]);
+        }
+
+        $allowed = $this->methodsFor($path);
+
+        if ($allowed !== []) {
+            header('Allow: ' . implode(', ', $allowed));
+
+            return $this->fail($path, 'Método não permitido.', 405);
+        }
+
+        return $this->fail($path, 'Rota não encontrada.', 404);
+    }
+
+    public function expectsJson(string $path): bool
+    {
+        return str_starts_with($path, self::JSON_PREFIX);
+    }
+
+    private function run(callable|array $handler): Response
+    {
+        if (is_array($handler)) {
+            [$class, $action] = $handler;
+
+            return $this->container->get($class)->$action();
+        }
+
+        return $handler();
+    }
+
+    private function fail(string $path, string $message, int $status): Response
+    {
+        return $this->expectsJson($path)
+            ? Response::json(['erro' => $message], $status)
+            : Response::make($message, $status, 'text/plain; charset=utf-8');
+    }
+
+    /** Métodos já registrados para este caminho, usado para responder o header Allow. */
+    private function methodsFor(string $path): array
+    {
+        $methods = [];
+
+        foreach ($this->routes as $method => $paths) {
+            if (isset($paths[$path])) {
+                $methods[] = $method;
+            }
+        }
+
+        return $methods;
+    }
+}
