@@ -20,10 +20,13 @@ class Router
         $this->routes['GET'][$path] = $handler;
     }
 
-    public function dispatch(string $method, string $path): Response
+    public function dispatch(Request $request): Response
     {
-        if (isset($this->routes[$method][$path])) {
-            return $this->run($this->routes[$method][$path]);
+        $path = $request->path();
+        $handler = $this->routes[$request->method()][$path] ?? null;
+
+        if ($handler !== null) {
+            return $this->run($handler, $request);
         }
 
         $allowed = $this->methodsFor($path);
@@ -42,15 +45,15 @@ class Router
         return str_starts_with($path, self::JSON_PREFIX);
     }
 
-    private function run(callable|array $handler): Response
+    private function run(callable|array $handler, Request $request): Response
     {
         if (is_array($handler)) {
             [$class, $action] = $handler;
 
-            return $this->container->get($class)->$action();
+            return $this->container->get($class)->$action($request);
         }
 
-        return $handler();
+        return $handler($request);
     }
 
     private function fail(string $path, string $message, int $status): Response
