@@ -33,9 +33,9 @@ bootstrap/app.php      monta container, rotas e devolve o roteador
 routes/web.php         declaração das rotas
 public/index.php       front controller: recebe, despacha, responde
 public/assets/         css e js servidos estaticamente
-core/                  o mínimo de framework: Router, Container, Response
-src/Controllers/       recebe a requisição já roteada
-src/Repositories/      leitura e validação da fonte de dados
+core/                  o mínimo de framework: Router, Container, Request, Response
+src/Controllers/       recebe a requisição já roteada e aplica o filtro
+src/Repositories/      leitura da fonte de dados
 src/Views/             html do relatório
 data/clientes.php      fonte de dados (array PHP, sem banco)
 ```
@@ -51,11 +51,13 @@ O caminho de uma requisição:
 ```
 public/index.php  →  bootstrap/app.php  →  routes/web.php
         ↓
-   Router::dispatch()
+   Request::capture()
+        ↓
+   Router::dispatch($request)
         ↓
    Container resolve o controller e suas dependências
         ↓
-   CustomerController::index()  →  CustomerRepository::all()
+   CustomerController::index($request)  →  CustomerRepository::all()
         ↓
    Response::json()  →  send()
 ```
@@ -70,6 +72,10 @@ com o header `Allow`; caminho desconhecido responde `404`.
 `string`, por exemplo) não tem como ser adivinhada e precisa de registro
 explícito — é o que `bootstrap/app.php` faz com o caminho do arquivo de dados.
 
+**`core/Request.php`** — a requisição vira objeto logo na entrada: método,
+caminho e parâmetros de query. Nenhuma outra camada toca em `$_GET` ou
+`$_SERVER` diretamente, e o roteador entrega essa instância para a action.
+
 **`core/Response.php`** — todo retorno HTTP sai por aqui, então status,
 `Content-Type` e cabeçalhos de segurança ficam definidos em um lugar só.
 
@@ -80,6 +86,12 @@ portanto não é acessível pela web.
 ## API
 
 ### `GET /api/customers`
+
+| Parâmetro | Obrigatório | Efeito |
+| --- | --- | --- |
+| `busca` | não | Filtra por nome, e-mail ou cidade. Ignora maiúsculas e minúsculas, inclusive em letras acentuadas (`SÃO` encontra `São`). Não ignora o acento em si: `sao` não encontra `São`. Ausente ou vazio devolve a base inteira. |
+
+`GET /api/customers?busca=campinas` devolve os clientes de Campinas.
 
 ```json
 [
@@ -122,6 +134,25 @@ arquivo com sintaxe inválida lança `ParseError`, que o repositório captura e
 converte em falha de fonte de dados — resposta `500` em vez de página em
 branco.
 
+**Filtro no servidor, não no navegador.** A busca é um parâmetro de query
+tratado no controller com `array_filter` e `str_contains`. O JavaScript não
+guarda cópia da base nem reimplementa comparação de texto: ele monta a URL,
+recebe a lista já filtrada e desenha. O front cuida de apresentação, o back
+cuida de dados.
+
+**Telefone sem máscara na API.** O endpoint devolve `11987654321`; a máscara
+`(11) 98765-4321` é aplicada só na exibição. Fosse formatado na origem, ordenar
+ou buscar exigiria desmontar a string de volta.
+
+**Tabela montada com template string.** As linhas são interpoladas em
+`innerHTML`, e não criadas com `createElement`. A decisão é consciente: a fonte
+é um array versionado dentro do projeto e nada digitado pelo usuário chega a
+ser renderizado — o termo de busca vai para o servidor como filtro e volta
+apenas como resultado. Não há, portanto, superfície de XSS neste recorte. A
+troca por `textContent` passa a ser necessária no dia em que esses dados vierem
+de formulário, banco ou API de terceiro; o código carrega essa nota no ponto
+exato em que a decisão foi tomada.
+
 **Autoload PSR-4 via Composer, sem dependências.** O bloco `require` do
 `composer.json` tem apenas a versão do PHP.
 
@@ -149,13 +180,18 @@ impediam a tela de funcionar:
 Além disso, o endpoint original não verificava a existência do arquivo de
 dados, não tratava exceção, não enviava status HTTP de erro, omitia o
 `charset` no `Content-Type` e serializava sem `JSON_UNESCAPED_UNICODE` — os
-acentos saíam escapados como `"São Paulo"`.
+acentos saíam escapados como `"S\u00e3o Paulo"`.
+
+No frontend não havia checagem de `response.ok` nem `.catch()`: como `fetch`
+não rejeita em erro HTTP, qualquer falha do servidor caía no `response.json()`,
+virava erro de parse e deixava a tela em branco, sem mensagem e sem saída.
 
 ## O que ficou de fora
 
-- Frontend: a tabela funciona, mas ainda não trata `response.ok`, não tem
-  `.catch()` e monta o HTML com `innerHTML` a partir de dado não escapado.
-  Estados de carregamento e de erro também não existem.
+- Ordenação por coluna e cartões de métrica: existiram durante o
+  desenvolvimento e foram removidos. Uma tela de relatório com 47 registros e
+  busca por texto não precisava dos dois, e cada um custava mais JavaScript do
+  que entregava.
 - Banco de dados: o enunciado dispensa, a fonte é um arquivo PHP.
 - Rota com parâmetro (`/clientes/{id}`): o roteador casa caminho exato, o que
   basta para uma rota de relatório.
