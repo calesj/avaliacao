@@ -4,13 +4,70 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Relatório de Clientes</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
 <body>
 
-<h1>Relatório de Clientes</h1>
+<main class="relatorio">
 
-<div id="relatorios"></div>
+    <header class="cabecalho">
+        <p class="sobrancelha">Relatório</p>
+        <h1>Carteira de clientes</h1>
+    </header>
+
+    <form class="filtros" id="filtros">
+        <div class="campo campo--busca">
+            <label for="busca">Buscar</label>
+            <input type="search" id="busca" name="busca" placeholder="Nome, e-mail ou cidade" autocomplete="off" spellcheck="false">
+        </div>
+
+        <button type="submit">Filtrar</button>
+
+        <p class="contagem" id="contagem" role="status" aria-live="polite"></p>
+    </form>
+
+    <div class="tabela-area">
+
+        <div class="estado estado--carregando" id="estado-carregando">
+            <div class="esqueleto"></div>
+            <div class="esqueleto"></div>
+            <div class="esqueleto"></div>
+            <div class="esqueleto"></div>
+            <div class="esqueleto"></div>
+            <span class="sr-only">Carregando relatório</span>
+        </div>
+
+        <div class="estado estado--erro" id="estado-erro" hidden>
+            <h2>Não foi possível carregar o relatório</h2>
+            <p id="erro-detalhe"></p>
+            <button type="button" id="tentar-novamente">Tentar novamente</button>
+        </div>
+
+        <div class="estado estado--vazio" id="estado-vazio" hidden>
+            <h2>Nenhum cliente encontrado</h2>
+            <p>Tente outro termo de busca.</p>
+        </div>
+
+        <table class="tabela" id="tabela" hidden>
+            <thead>
+                <tr>
+                    <th scope="col">Nome</th>
+                    <th scope="col">E-mail</th>
+                    <th scope="col">Cidade</th>
+                    <th scope="col" class="col-telefone">Telefone</th>
+                </tr>
+            </thead>
+            <tbody id="corpo"></tbody>
+        </table>
+
+    </div>
+
+</main>
 
 <script src="/assets/js/app.js"></script>
 </body>

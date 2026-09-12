@@ -1,8 +1,330 @@
-body {
-    font-family: Arial, sans-serif;
-    padding: 20px;
+:root {
+    --papel: #f6f3ed;
+    --papel-alto: #fffdf9;
+    --tinta: #15171a;
+    --tinta-media: #565b61;
+    --tinta-fraca: #8d9298;
+    --regua: #ddd6ca;
+    --regua-forte: #c6bdad;
+    --acento: #0d5c4f;
+    --acento-tenue: #e0ece6;
+    --alerta: #8f3d1c;
+
+    --fonte-titulo: "Fraunces", Georgia, "Times New Roman", serif;
+    --fonte-texto: "IBM Plex Sans", "Segoe UI", Helvetica, sans-serif;
+
+    --largura: 76rem;
+    --raio: 3px;
 }
 
-table {
+@media (prefers-color-scheme: dark) {
+    :root {
+        --papel: #121417;
+        --papel-alto: #191c20;
+        --tinta: #ecebe7;
+        --tinta-media: #a2a8af;
+        --tinta-fraca: #787e85;
+        --regua: #2a2f35;
+        --regua-forte: #3d444c;
+        --acento: #5cc4ab;
+        --acento-tenue: #17332e;
+        --alerta: #e0906b;
+    }
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+/* Sem isto, a regra .tabela { display: block } do modo celular venceria
+   o atributo hidden e a tabela apareceria durante o carregamento. */
+[hidden] {
+    display: none !important;
+}
+
+body {
+    margin: 0;
+    padding: clamp(1.5rem, 4vw, 4rem) clamp(1rem, 4vw, 3rem) 6rem;
+    background: var(--papel);
+    /* Textura discreta de papel: dois gradientes, sem imagem externa. */
+    background-image:
+        radial-gradient(circle at 15% 0%, rgba(13, 92, 79, 0.05), transparent 45%),
+        radial-gradient(circle at 100% 8%, rgba(143, 61, 28, 0.04), transparent 40%);
+    background-attachment: fixed;
+    color: var(--tinta);
+    font-family: var(--fonte-texto);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+}
+
+.relatorio {
+    max-width: var(--largura);
+    margin: 0 auto;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ---------- Cabeçalho ---------- */
+
+.cabecalho {
+    padding-bottom: 1.75rem;
+    border-bottom: 2px solid var(--tinta);
+}
+
+.sobrancelha {
+    margin: 0 0 0.35rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--acento);
+}
+
+.cabecalho h1 {
+    margin: 0;
+    font-family: var(--fonte-titulo);
+    font-size: clamp(2.1rem, 5vw, 3.4rem);
+    font-weight: 600;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+}
+
+/* ---------- Filtros ---------- */
+
+.filtros {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 1.25rem;
+    padding: 1.75rem 0 1.5rem;
+}
+
+.campo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.campo--busca {
+    flex: 1 1 18rem;
+}
+
+.campo label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--tinta-fraca);
+}
+
+.campo input {
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--regua-forte);
+    border-radius: var(--raio);
+    background: var(--papel-alto);
+    color: var(--tinta);
+    font-family: inherit;
+    font-size: 0.95rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.campo input:focus-visible,
+button:focus-visible {
+    outline: none;
+    border-color: var(--acento);
+    box-shadow: 0 0 0 3px var(--acento-tenue);
+}
+
+button {
+    padding: 0.6rem 1.25rem;
+    border: 1px solid var(--acento);
+    border-radius: var(--raio);
+    background: var(--acento);
+    color: var(--papel-alto);
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+}
+
+button:hover {
+    opacity: 0.85;
+}
+
+.contagem {
+    margin: 0 0 0.55rem auto;
+    color: var(--tinta-media);
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Tabela ---------- */
+
+.tabela {
+    width: 100%;
     border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+}
+
+.tabela thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 0.7rem 1rem 0.7rem 0;
+    background: var(--papel);
+    border-bottom: 1px solid var(--tinta);
+    color: var(--tinta-media);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-align: left;
+    text-transform: uppercase;
+}
+
+.tabela tbody tr {
+    border-bottom: 1px solid var(--regua);
+    animation: surgir 0.35s ease both;
+}
+
+.tabela tbody tr:hover {
+    background: var(--papel-alto);
+}
+
+.tabela td {
+    padding: 0.7rem 1rem 0.7rem 0;
+    vertical-align: middle;
+}
+
+.tabela td:first-child {
+    font-weight: 500;
+}
+
+.tabela td:nth-child(2) {
+    color: var(--tinta-media);
+}
+
+.col-telefone,
+.tabela td:last-child {
+    padding-right: 0;
+    color: var(--tinta-media);
+    text-align: right;
+}
+
+/* ---------- Estados ---------- */
+
+.estado {
+    padding: 3rem 0;
+}
+
+.estado h2 {
+    margin: 0 0 0.4rem;
+    font-family: var(--fonte-titulo);
+    font-size: 1.35rem;
+    font-weight: 600;
+}
+
+.estado p {
+    margin: 0;
+    color: var(--tinta-media);
+}
+
+.estado--erro h2 {
+    color: var(--alerta);
+}
+
+.estado--erro button {
+    margin-top: 1.1rem;
+}
+
+.esqueleto {
+    height: 2.6rem;
+    margin-bottom: 0.5rem;
+    border-radius: var(--raio);
+    background: linear-gradient(90deg, var(--regua) 25%, var(--papel-alto) 50%, var(--regua) 75%);
+    background-size: 200% 100%;
+    animation: brilho 1.4s ease-in-out infinite;
+}
+
+.esqueleto:nth-child(2) { opacity: 0.8; }
+.esqueleto:nth-child(3) { opacity: 0.6; }
+.esqueleto:nth-child(4) { opacity: 0.45; }
+.esqueleto:nth-child(5) { opacity: 0.3; }
+
+@keyframes brilho {
+    to { background-position: -200% 0; }
+}
+
+@keyframes surgir {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
+}
+
+/* ---------- Telas estreitas: a tabela vira lista ---------- */
+
+@media (max-width: 760px) {
+    .tabela thead {
+        display: none;
+    }
+
+    .tabela,
+    .tabela tbody,
+    .tabela tr,
+    .tabela td {
+        display: block;
+    }
+
+    .tabela tbody tr {
+        padding: 1rem 0;
+    }
+
+    .tabela td {
+        padding: 0.15rem 0;
+    }
+
+    .tabela td:last-child {
+        text-align: left;
+    }
+
+    /* Rótulo da coluna vem do CSS, para o JS não precisar escrevê-lo em cada célula. */
+    .tabela td::before {
+        display: block;
+        color: var(--tinta-fraca);
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+    }
+
+    .tabela td:nth-child(1)::before { content: "Nome"; }
+    .tabela td:nth-child(2)::before { content: "E-mail"; }
+    .tabela td:nth-child(3)::before { content: "Cidade"; }
+    .tabela td:nth-child(4)::before { content: "Telefone"; }
+
+    .contagem {
+        margin-left: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }
