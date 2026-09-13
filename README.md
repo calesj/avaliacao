@@ -6,6 +6,12 @@ e o frontend consome esse endpoint via AJAX para montar a tabela.
 O desafio pedia algo enxuto, então nenhuma dependência foi instalada: o
 `composer.json` existe só para gerar o autoload PSR-4.
 
+## Vídeo
+
+**[Assistir à apresentação no YouTube](https://www.youtube.com/watch?v=7joednuWufE)** — o
+relatório funcionando, os problemas encontrados nos arquivos originais e as
+decisões de projeto.
+
 ## Requisitos
 
 - PHP 8.2 ou superior
