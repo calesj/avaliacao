@@ -16,6 +16,7 @@ readonly class CustomerController
     public function index(Request $request): Response
     {
         $customers = $this->repository->all();
+
         $search = mb_strtolower($request->query('busca'));
 
         if ($search !== '') {
