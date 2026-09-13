@@ -22,10 +22,6 @@ async function load() {
     emptyBox.hidden = true;
 
     try {
-
-        /** Timeout de 1 segundo pra ver o loading na table */
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
         const response = await fetch(`/api/customers?busca=${encodeURIComponent(searchInput.value)}`);
 
         // fetch não rejeita em erro HTTP: sem isto um 500 cairia no .json(),
