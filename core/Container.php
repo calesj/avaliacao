@@ -19,46 +19,46 @@ class Container
     /**
      * @throws ReflectionException
      */
-    public function get(string $id): object
+    public function get(string $class): object
     {
         /** Ja construiu antes? devolve o mesmo objeto */
-        if (isset($this->instances[$id])) {
-            return $this->instances[$id];
+        if (isset($this->instances[$class])) {
+            return $this->instances[$class];
         }
 
         /** Tem receita? Executa */
-        if (isset($this->bindings[$id])) {
-            $object = $this->bindings[$id]();
+        if (isset($this->bindings[$class])) {
+            $object = $this->bindings[$class]();
 
             /** Se for Singleton, guarda para a proxima vez */
-            if (isset($this->singletons[$id])) {
-                $this->instances[$id] = $object;
+            if (isset($this->singletons[$class])) {
+                $this->instances[$class] = $object;
             }
 
             return $object;
         }
 
         /** Lógica para injeção de depedencia de forma automatica */
-        $reflector = new ReflectionClass($id);
+        $reflector = new ReflectionClass($class);
         $constructor = $reflector->getConstructor();
 
         if ($constructor === null) {
-            return new $id();
+            return new $class();
         }
 
         $parameters = [];
 
         foreach ($constructor->getParameters() as $param) {
-            $parameters[] = $this->resolve($param, $id);
+            $parameters[] = $this->resolve($param, $class);
         }
 
         return $reflector->newInstanceArgs($parameters);
     }
 
-    public function singleton(string $id, callable $factory): void
+    public function singleton(string $class, callable $factory): void
     {
-        $this->bindings[$id] = $factory;
-        $this->singletons[$id] = true;
+        $this->bindings[$class] = $factory;
+        $this->singletons[$class] = true;
     }
 
     /**
@@ -66,7 +66,7 @@ class Container
      * parâmetro sem tipo ou union type precisam de um bind explícito — sem esta
      * checagem o erro sairia como "Class string does not exist", que não ajuda ninguém.
      */
-    private function resolve(ReflectionParameter $param, string $id): mixed
+    private function resolve(ReflectionParameter $param, string $class): mixed
     {
         $type = $param->getType();
 
@@ -81,7 +81,7 @@ class Container
         throw new RuntimeException(sprintf(
             'Não consegui resolver $%s de %s automaticamente. Registre um bind para essa classe.',
             $param->getName(),
-            $id,
+            $class,
         ));
     }
 }
