@@ -217,7 +217,7 @@ button:hover {
     color: var(--tinta-media);
 }
 
-.col-telefone,
+.tabela th:last-child,
 .tabela td:last-child {
     padding-right: 0;
     color: var(--tinta-media);
