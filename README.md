@@ -1,204 +1,70 @@
 # Relatório de Clientes
 
-Aplicação de relatório em PHP, sem framework. O backend expõe um endpoint JSON
-e o frontend consome esse endpoint via AJAX para montar a tabela.
+Relatório em PHP sem framework: um endpoint JSON consumido via AJAX por uma
+tela em HTML, CSS e JavaScript.
 
-O desafio pedia algo enxuto, então nenhuma dependência foi instalada: o
-`composer.json` existe só para gerar o autoload PSR-4.
-
-## Vídeo
-
-**[Assistir à apresentação no YouTube](https://www.youtube.com/watch?v=7joednuWufE)** — o
-relatório funcionando, os problemas encontrados nos arquivos originais e as
-decisões de projeto.
-
-## Requisitos
-
-- PHP 8.2 ou superior
-- Composer
+**[Assistir ao vídeo de apresentação](https://www.youtube.com/watch?v=7joednuWufE)** —
+o relatório funcionando, os problemas encontrados e as decisões de projeto.
 
 ## Como rodar
 
-```bash
-composer install
-```
+Requer PHP 8.2+ e Composer.
 
 ```bash
+composer install
 php -S localhost:8000 -t public public/index.php
 ```
 
-Abra `http://localhost:8000`.
-
-Em Laravel Herd, Valet ou qualquer vhost, basta apontar o *document root* para
-`public/` — o `.test` já funciona sem configuração extra.
+Abra `http://localhost:8000`. Em Herd ou Valet, aponte o *document root* para
+`public/`.
 
 ## Estrutura
 
 ```
-bootstrap/app.php      monta container, rotas e devolve o roteador
-routes/web.php         declaração das rotas
-public/index.php       front controller: recebe, despacha, responde
-public/assets/         css e js servidos estaticamente
-core/                  o mínimo de framework: Router, Container, Request, Response
-src/Controllers/       recebe a requisição já roteada e aplica o filtro
-src/Repositories/      leitura da fonte de dados
-src/Views/             html do relatório
-data/clientes.php      fonte de dados (array PHP, sem banco)
+public/index.php     front controller
+bootstrap/app.php    monta o container e as rotas
+routes/web.php       declaração das rotas
+core/                Router, Container, Request, Response
+src/                 controller, repositório e view
+data/clientes.php    fonte de dados
 ```
 
-## Arquitetura
-
-A organização é deliberadamente parecida com a do Laravel, que é o framework
-que uso no dia a dia. A ideia foi mostrar que os conceitos são entendidos, e
-não apenas usados quando o framework já os entrega prontos.
-
-O caminho de uma requisição:
-
-```
-public/index.php  →  bootstrap/app.php  →  routes/web.php
-        ↓
-   Request::capture()
-        ↓
-   Router::dispatch($request)
-        ↓
-   Container resolve o controller e suas dependências
-        ↓
-   CustomerController::index($request)  →  CustomerRepository::all()
-        ↓
-   Response::json()  →  send()
-```
-
-**`core/Router.php`** — guarda `método + caminho → handler`. Aceita closure ou
-`[Classe::class, 'metodo']`. Caminho registrado em outro método responde `405`
-com o header `Allow`; caminho desconhecido responde `404`.
-
-**`core/Container.php`** — resolve dependências por reflexão. Ao instanciar
-`CustomerController`, lê a assinatura do construtor, vê que ele precisa de um
-`CustomerRepository` e o monta sozinho. Dependência que não é classe (uma
-`string`, por exemplo) não tem como ser adivinhada e precisa de registro
-explícito — é o que `bootstrap/app.php` faz com o caminho do arquivo de dados.
-
-**`core/Request.php`** — a requisição vira objeto logo na entrada: método,
-caminho e parâmetros de query. Nenhuma outra camada toca em `$_GET` ou
-`$_SERVER` diretamente, e o roteador entrega essa instância para a action.
-
-**`core/Response.php`** — todo retorno HTTP sai por aqui, então status,
-`Content-Type` e cabeçalhos de segurança ficam definidos em um lugar só.
-
-**`bootstrap/app.php`** — a *composition root*: o único ponto que sabe quais
-implementações concretas existem e onde os dados moram. Fica fora de `public/`,
-portanto não é acessível pela web.
+A organização segue a do Laravel: o `Container` resolve dependências por
+reflexão, o `Router` entrega um `Request` para a action e toda resposta sai por
+`Response`. Nenhuma dependência instalada — o Composer serve só para o
+autoload PSR-4.
 
 ## API
 
-### `GET /api/customers`
+`GET /api/customers?busca=<termo>` — lista os clientes; com `busca`, filtra
+por nome, e-mail ou cidade.
 
-| Parâmetro | Obrigatório | Efeito |
-| --- | --- | --- |
-| `busca` | não | Filtra por nome, e-mail ou cidade. Ignora maiúsculas e minúsculas, inclusive em letras acentuadas (`SÃO` encontra `São`). Não ignora o acento em si: `sao` não encontra `São`. Ausente ou vazio devolve a base inteira. |
-
-`GET /api/customers?busca=campinas` devolve os clientes de Campinas.
-
-```json
-[
-  {
-    "id": 1,
-    "nome": "Ana Pereira",
-    "email": "ana.pereira@email.com",
-    "cidade": "São Paulo",
-    "telefone": "11987654321"
-  }
-]
-```
-
-Cabeçalhos: `Content-Type: application/json; charset=utf-8`,
-`Cache-Control: no-store`, `X-Content-Type-Options: nosniff`.
-
-### Erros
-
-Abaixo de `/api`, erro sai em JSON. Fora dele, em texto — uma navegação de
-browser não deveria receber JSON cru na tela.
-
-```json
-{ "erro": "Rota não encontrada." }
-```
-
-| Situação | Status |
-| --- | --- |
-| Rota inexistente | `404` |
-| Método não registrado para a rota | `405` + header `Allow` |
-| Fonte de dados ilegível, ausente ou corrompida | `500` |
-
-## Decisões técnicas
-
-**Validação fica na escrita, não na leitura.** A fonte é um array PHP versionado
-junto com o projeto, então o repositório confia no formato e só trata falhas do
-arquivo como um todo: ausente, ilegível ou com sintaxe inválida.
-
-**Erro de sintaxe no arquivo de dados é tratado.** Em PHP 8 o `require` de um
-arquivo com sintaxe inválida lança `ParseError`, que o repositório captura e
-converte em falha de fonte de dados — resposta `500` em vez de página em
-branco.
-
-**Filtro no servidor, não no navegador.** A busca é um parâmetro de query
-tratado no controller com `array_filter` e `str_contains`. O JavaScript não
-guarda cópia da base nem reimplementa comparação de texto: ele monta a URL,
-recebe a lista já filtrada e desenha. O front cuida de apresentação, o back
-cuida de dados.
-
-**Telefone sem máscara na API.** O endpoint devolve `11987654321`; a máscara
-`(11) 98765-4321` é aplicada só na exibição. Fosse formatado na origem, ordenar
-ou buscar exigiria desmontar a string de volta.
-
-**Tabela montada com template string.** As linhas são interpoladas em
-`innerHTML`, e não criadas com `createElement`. A decisão é consciente: a fonte
-é um array versionado dentro do projeto e nada digitado pelo usuário chega a
-ser renderizado — o termo de busca vai para o servidor como filtro e volta
-apenas como resultado. Não há, portanto, superfície de XSS neste recorte. A
-troca por `textContent` passa a ser necessária no dia em que esses dados vierem
-de formulário, banco ou API de terceiro; o código carrega essa nota no ponto
-exato em que a decisão foi tomada.
-
-**Autoload PSR-4 via Composer, sem dependências.** O bloco `require` do
-`composer.json` tem apenas a versão do PHP.
+Erros sob `/api` saem em JSON: `404` para rota inexistente, `405` para método
+não permitido (com header `Allow`) e `500` quando a fonte de dados está
+indisponível.
 
 ## Problemas encontrados no pacote original
 
-O enunciado avisava que os arquivos continham erros propositais. Três deles
-impediam a tela de funcionar:
+1. **Contrato divergente** — o JS pedia `action=list` e o PHP só tratava
+   `report`. A action desconhecida devolvia `200` com corpo vazio, e o
+   `response.json()` quebrava.
+2. **Elemento inexistente** — o JS buscava `#relatorios` e o HTML tinha
+   `#relatorio`; o `getElementById` devolvia `null`.
+3. **Colunas trocadas** — cabeçalho `Email | Nome` com células `nome | email`.
+   Não gerava erro nenhum: mostrava dado errado.
 
-1. **Contrato divergente entre front e back.** O JavaScript chamava
-   `?action=list`, mas o PHP só tratava `action === 'report'`. Nenhum dos dois
-   respondia ao outro — e, pior, a action desconhecida encerrava o script sem
-   imprimir nada: resposta `200` com corpo vazio, que faz o `response.json()`
-   estourar `Unexpected end of JSON input`.
+Além disso: nenhum tratamento de erro no PHP, `Content-Type` sem charset,
+acentos escapados (`S\u00e3o Paulo`) e, no front, sem `response.ok` nem
+`.catch()` — qualquer falha deixava a tela em branco.
 
-2. **Elemento de destino inexistente.** O JavaScript procurava
-   `getElementById('relatorios')` enquanto o HTML declarava `id="relatorio"`.
-   `getElementById` devolve `null` silenciosamente, e a quebra só aparecia uma
-   linha depois, em `Cannot set properties of null`.
+## Decisões
 
-3. **Colunas fora de ordem.** O cabeçalho da tabela dizia `Email | Nome |
-   Cidade`, mas as células eram preenchidas com `nome`, `email`, `cidade`.
-   Esse erro não gera exceção nenhuma: a tabela renderiza normalmente e mostra
-   dado trocado, que é pior que uma tela quebrada.
-
-Além disso, o endpoint original não verificava a existência do arquivo de
-dados, não tratava exceção, não enviava status HTTP de erro, omitia o
-`charset` no `Content-Type` e serializava sem `JSON_UNESCAPED_UNICODE` — os
-acentos saíam escapados como `"S\u00e3o Paulo"`.
-
-No frontend não havia checagem de `response.ok` nem `.catch()`: como `fetch`
-não rejeita em erro HTTP, qualquer falha do servidor caía no `response.json()`,
-virava erro de parse e deixava a tela em branco, sem mensagem e sem saída.
-
-## O que ficou de fora
-
-- Ordenação por coluna e cartões de métrica: existiram durante o
-  desenvolvimento e foram removidos. Uma tela de relatório com 47 registros e
-  busca por texto não precisava dos dois, e cada um custava mais JavaScript do
-  que entregava.
-- Banco de dados: o enunciado dispensa, a fonte é um arquivo PHP.
-- Rota com parâmetro (`/clientes/{id}`): o roteador casa caminho exato, o que
-  basta para uma rota de relatório.
-- Paginação: 47 registros cabem numa requisição.
+- **Filtro no servidor**, com `array_filter`: o JavaScript só monta a URL e
+  desenha o resultado.
+- **Validação na escrita, não na leitura**: a fonte é versionada no projeto,
+  então o repositório só trata falha do arquivo inteiro (ausente, ilegível ou
+  com `ParseError`) e responde `500` em JSON.
+- **Telefone sem máscara na API**: a formatação acontece só na exibição.
+- **Tabela com `innerHTML`**: seguro aqui porque nenhum dado digitado pelo
+  usuário é renderizado. Se a fonte passar a ser formulário ou banco, trocar
+  por `textContent`.
